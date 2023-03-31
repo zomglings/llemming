@@ -3,7 +3,9 @@ import os
 import textwrap
 from typing import Any, Dict, List, Optional, Set
 
+from langchain.chains import LLMChain
 from langchain.llms import OpenAI
+from langchain.prompts import PromptTemplate
 
 from .settings import OPENAI_API_KEY
 
@@ -90,13 +92,28 @@ def render_dirtree(dirtree: Dict[str, Any], base: str, indent: int = 2) -> str:
     return render
 
 
+DESCRIBE_DIRECTORY_PROMPT = """I am interested in learning more about a directory with the following tree structure:
+{directory}
+
+Please answer two questions for me:
+
+1. Topics: Can you explain to me the different high-level, semantic topics that the files in the directory represent? Include a description of each topic. Return the topics as a list in the form:
+- <topic 1> - <description of topic 1>
+- <topic 2> - <description of topic 2>
+- ...
+
+2: Entrypoints: Which files would be good entrypoints to each of the different topics?
+
+Thank you for your help!
+"""
+
+
 def analyze_directory(
     directory: str,
     only_extensions: Optional[List[str]] = None,
     ignores: Optional[Set[str]] = None,
     symlinks: bool = False,
-) -> None:
-    llm = OpenAI(openai_api_key=OPENAI_API_KEY())
+) -> str:
     tree = dirtree(
         directory=directory,
         only_extensions=only_extensions,
@@ -104,4 +121,12 @@ def analyze_directory(
         symlinks=symlinks,
     )
     render = render_dirtree(tree, directory)
-    print(render)
+
+    llm = OpenAI(openai_api_key=OPENAI_API_KEY())
+    prompt = PromptTemplate(
+        input_variables=["directory"], template=DESCRIBE_DIRECTORY_PROMPT
+    )
+    chain = LLMChain(llm=llm, prompt=prompt)
+
+    result = chain.run(render)
+    return result

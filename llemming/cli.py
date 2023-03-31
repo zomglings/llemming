@@ -15,12 +15,13 @@ def handle_analyzedir(args: argparse.Namespace) -> None:
                     continue
                 for item in glob.glob(stripped_line):
                     ignores.add(item)
-    analyze_directory(
+    result = analyze_directory(
         directory=args.dir,
         only_extensions=args.extensions,
         ignores=ignores,
         symlinks=args.symlinks,
     )
+    print(result)
 
 
 def generate_argument_parser() -> argparse.ArgumentParser:
