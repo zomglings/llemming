@@ -98,11 +98,13 @@ DESCRIBE_DIRECTORY_PROMPT = """I am interested in learning more about a director
 Please answer two questions for me:
 
 1. Topics: Can you explain to me the different high-level, semantic topics that the files in the directory represent? Include a description of each topic. Return the topics as a list in the form:
-- <topic 1> - <description of topic 1>
-- <topic 2> - <description of topic 2>
+- <high level topic 1> - <description of topic 1>
+- <high level topic 2> - <description of topic 2>
 - ...
 
 2: Entrypoints: Which files would be good entrypoints to each of the different topics?
+
+Remember, the topics should reflect the high-level semantics of the files in the directory.
 
 Thank you for your help!
 """
