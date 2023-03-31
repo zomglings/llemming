@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field, asdict
 import os
 import textwrap
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+from langchain.llms import OpenAI
 
 
 @dataclass
@@ -10,14 +12,29 @@ class Directory:
     files: List[str] = field(default_factory=list)
 
 
-def dirtree(directory: str, symlinks: bool = False) -> Dict[str, Any]:
+def dirtree(
+    directory: str, only_extensions: Optional[List[str]] = None, symlinks: bool = False
+) -> Dict[str, Any]:
     """
     Return a data structure representing the filesystem tree under the given directory
     """
     tree = {}
     for root, dirs, files in os.walk(directory, followlinks=symlinks, topdown=True):
+        valid_files = files
+        if only_extensions is not None:
+            extensions = [
+                extension for extension in only_extensions if extension[0] == "."
+            ] + [
+                f".{extension}" for extension in only_extensions if extension[0] != "."
+            ]
+            valid_files = []
+            for file in files:
+                _, ext = os.path.splitext(file)
+                if ext in extensions:
+                    valid_files.append(file)
+
         tree[root] = Directory(
-            subdirs=[os.path.join(root, dir) for dir in dirs], files=files
+            subdirs=[os.path.join(root, dir) for dir in dirs], files=valid_files
         )
     return tree
 
@@ -50,7 +67,12 @@ def render_dirtree(dirtree: Dict[str, Any], base: str, indent: int = 2) -> str:
     return render
 
 
-def analyze_directory(directory: str, symlinks: bool = False) -> None:
-    tree = dirtree(directory, symlinks)
+def analyze_directory(
+    directory: str, only_extensions: Optional[List[str]] = None, symlinks: bool = False
+) -> None:
+    # llm = OpenAI()
+    tree = dirtree(
+        directory=directory, only_extensions=only_extensions, symlinks=symlinks
+    )
     render = render_dirtree(tree, directory)
     print(render)

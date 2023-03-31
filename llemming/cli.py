@@ -5,7 +5,9 @@ from .version import VERSION
 
 
 def handle_analyzedir(args: argparse.Namespace) -> None:
-    analyze_directory(directory=args.dir, symlinks=args.symlinks)
+    analyze_directory(
+        directory=args.dir, only_extensions=args.extensions, symlinks=args.symlinks
+    )
 
 
 def generate_argument_parser() -> argparse.ArgumentParser:
@@ -29,6 +31,9 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     )
     analyzedir_command.add_argument(
         "-d", "--dir", required=True, help="Directory to analyze"
+    )
+    analyzedir_command.add_argument(
+        "--extensions", nargs="*", help="File extensions you care about"
     )
     analyzedir_command.add_argument(
         "-s",
