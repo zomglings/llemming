@@ -1,12 +1,25 @@
 import argparse
+import glob
 
 from .analyze_directory import analyze_directory
 from .version import VERSION
 
 
 def handle_analyzedir(args: argparse.Namespace) -> None:
+    ignores = set(args.ignores) if args.ignores else set()
+    if args.ignores_file is not None:
+        with open(args.ignores_file, "r") as ifp:
+            for line in ifp:
+                stripped_line = line.strip()
+                if stripped_line == "":
+                    continue
+                for item in glob.glob(stripped_line):
+                    ignores.add(item)
     analyze_directory(
-        directory=args.dir, only_extensions=args.extensions, symlinks=args.symlinks
+        directory=args.dir,
+        only_extensions=args.extensions,
+        ignores=ignores,
+        symlinks=args.symlinks,
     )
 
 
@@ -35,6 +48,10 @@ def generate_argument_parser() -> argparse.ArgumentParser:
     analyzedir_command.add_argument(
         "--extensions", nargs="*", help="File extensions you care about"
     )
+    analyzedir_command.add_argument(
+        "--ignores", nargs="*", help="Files and directories to ignore"
+    )
+    analyzedir_command.add_argument("--ignores-file", help="File to read ignores from")
     analyzedir_command.add_argument(
         "-s",
         "--symlinks",
