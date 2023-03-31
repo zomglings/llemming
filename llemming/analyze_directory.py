@@ -98,11 +98,14 @@ DESCRIBE_DIRECTORY_PROMPT = """I am interested in learning more about a director
 Please answer two questions for me:
 
 1. Topics: Can you explain to me the different high-level, semantic topics that the files in the directory represent? Include a description of each topic. Return the topics as a list in the form:
-- <high level topic 1> - <description of topic 1>
-- <high level topic 2> - <description of topic 2>
-- ...
 
 2: Entrypoints: Which files would be good entrypoints to each of the different topics?
+
+Please return your answer in JSON format, in the following structure:
+{{
+    "topics": {{"<high level topic 1>": "<description of topic 1>", "<high level topic 2>": "<description of topic 2>", ...}},
+    "entrypoints": {{"<high level topic 1>": ["<entrypoint 1 for topic 1>", "<entrypoint 2 for topic 1>", ...], "<high level topic 2>": ["<entrypoint 1 for topic 2>", "<entrypoint 2 for topic 2>", ...], ...}}
+}}
 
 Remember, the topics should reflect the high-level semantics of the files in the directory.
 
