@@ -19,7 +19,7 @@ setup(
     description="llemming: Just llm stuff",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author="Moonstream",
+    author="zomglings",
     author_email="nkashy1@gmail.com",
     classifiers=[
         "Development Status :: 3 - Alpha",
