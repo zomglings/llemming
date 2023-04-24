@@ -86,11 +86,12 @@ DESCRIBE_DIRECTORY_PROMPT = """We have to analyze a codebase in a directory with
 
 Our goal at the end of our work is to generate high-level documentation about the code in this codebase.
 
-Which files should we start by analyzing?
+Which files should we start by analyzing? For each file, please provide a list of topics you think that
+file could pertain to.
 
-Return your output as a list of files to analyze:
-- file_1
-- file_2
+Return your output as a list of files to analyze, along with expected topics:
+- file_1,topic_1_1,...,topic_1_{{n_1}}
+- file_2,topic_2_1,...,topic_2_{{n_2}}
 - ...
 
 Each file should be specified as a path relative to the root of the codebase.
