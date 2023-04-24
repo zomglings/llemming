@@ -1,27 +1,40 @@
 import argparse
 import glob
+import os
 
-from .analyze_directory import analyze_directory
+from . import hone
+from .settings import MODELS
 from .version import VERSION
 
 
-def handle_analyzedir(args: argparse.Namespace) -> None:
-    ignores = set(args.ignores) if args.ignores else set()
+def handle_hone(args: argparse.Namespace) -> None:
+    ignores = set()
     if args.ignores_file is not None:
         with open(args.ignores_file, "r") as ifp:
             for line in ifp:
                 stripped_line = line.strip()
-                if stripped_line == "":
+                if stripped_line == "" or stripped_line.startswith("#"):
                     continue
-                for item in glob.glob(stripped_line):
-                    ignores.add(item)
-    result = analyze_directory(
-        directory=args.dir,
-        only_extensions=args.extensions,
-        ignores=ignores,
-        symlinks=args.symlinks,
-    )
-    print(result)
+                for item in glob.glob(stripped_line, root_dir=args.dir):
+                    ignores.add(os.path.join(args.dir, item))
+                if "*" not in stripped_line:
+                    for item in glob.glob(f"**/{stripped_line}", root_dir=args.dir):
+                        ignores.add(os.path.join(args.dir, item))
+    if os.path.exists(os.path.join(args.dir, ".git")):
+        ignores.add(os.path.join(args.dir, ".git"))
+    if args.prompt:
+        prompt = hone.generate_prompt(
+            directory=args.dir, ignores=ignores, symlinks=args.symlinks
+        )
+        print(prompt)
+    else:
+        result = hone.hone(
+            model=args.model,
+            directory=args.dir,
+            ignores=ignores,
+            symlinks=args.symlinks,
+        )
+        print(result)
 
 
 def generate_argument_parser() -> argparse.ArgumentParser:
@@ -39,27 +52,25 @@ def generate_argument_parser() -> argparse.ArgumentParser:
         title="Commands", description="llemming commands"
     )
 
-    analyzedir_help = "Analyze a directory and describe its contents"
-    analyzedir_command = subparsers.add_parser(
-        "analyzedir", help=analyzedir_help, description=analyzedir_help
+    hone_help = "Identify files in a code base to analyze more deeply"
+    hone_command = subparsers.add_parser("hone", help=hone_help, description=hone_help)
+    hone_command.add_argument(
+        "--model", required=True, choices=MODELS(), help="OpenAI model to use"
     )
-    analyzedir_command.add_argument(
-        "-d", "--dir", required=True, help="Directory to analyze"
-    )
-    analyzedir_command.add_argument(
-        "--extensions", nargs="*", help="File extensions you care about"
-    )
-    analyzedir_command.add_argument(
-        "--ignores", nargs="*", help="Files and directories to ignore"
-    )
-    analyzedir_command.add_argument("--ignores-file", help="File to read ignores from")
-    analyzedir_command.add_argument(
+    hone_command.add_argument("-d", "--dir", required=True, help="Directory to analyze")
+    hone_command.add_argument("--ignores-file", help="File to read ignores from")
+    hone_command.add_argument(
         "-s",
         "--symlinks",
         action="store_true",
         help="Set this flag to follow symbol links to directories",
     )
-    analyzedir_command.set_defaults(func=handle_analyzedir)
+    hone_command.add_argument(
+        "--prompt",
+        action="store_true",
+        help="If you set this flag, this command prints the prompt and exits without actually executing the model.",
+    )
+    hone_command.set_defaults(func=handle_hone)
 
     return parser
 

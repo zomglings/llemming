@@ -11,7 +11,7 @@ setup(
     name="llemming",
     version=VERSION,
     packages=find_packages(),
-    install_requires=["langchain", "openai"],
+    install_requires=["openai", "tiktoken"],
     extras_require={
         "dev": ["black"],
         "distribute": ["setuptools", "twine", "wheel"],

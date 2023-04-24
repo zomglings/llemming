@@ -3,11 +3,13 @@ import os
 import textwrap
 from typing import Any, Dict, List, Optional, Set
 
-from langchain.chains import LLMChain
-from langchain.llms import OpenAI
-from langchain.prompts import PromptTemplate
+import openai
 
 from .settings import OPENAI_API_KEY
+
+
+# Set OpenAI API key
+openai.api_key = OPENAI_API_KEY()
 
 
 @dataclass
@@ -18,18 +20,12 @@ class Directory:
 
 def dirtree(
     directory: str,
-    only_extensions: Optional[List[str]] = None,
     ignores: Optional[Set[str]] = None,
     symlinks: bool = False,
 ) -> Dict[str, Any]:
     """
     Return a data structure representing the filesystem tree under the given directory
     """
-    if only_extensions is not None:
-        extensions = [
-            extension for extension in only_extensions if extension[0] == "."
-        ] + [f".{extension}" for extension in only_extensions if extension[0] != "."]
-
     ignores_absolute = set()
     if ignores is not None:
         ignores_absolute = {os.path.abspath(item) for item in ignores}
@@ -46,13 +42,6 @@ def dirtree(
             for file in files
             if os.path.abspath(os.path.join(root, file)) not in ignores_absolute
         ]
-        if only_extensions is not None:
-            unignored_files = [*valid_files]
-            valid_files = []
-            for file in unignored_files:
-                _, ext = os.path.splitext(file)
-                if ext in extensions:
-                    valid_files.append(file)
 
         tree[root] = Directory(
             subdirs=[os.path.join(root, dir) for dir in dirs], files=valid_files
@@ -92,46 +81,47 @@ def render_dirtree(dirtree: Dict[str, Any], base: str, indent: int = 2) -> str:
     return render
 
 
-DESCRIBE_DIRECTORY_PROMPT = """I am interested in learning more about a directory with the following tree structure:
-{directory}
+DESCRIBE_DIRECTORY_PROMPT = """We have to analyze a codebase in a directory with the following tree structure:
+{dirtree}
 
-Please answer two questions for me:
+Our goal at the end of our work is to generate high-level documentation about the code in this codebase.
 
-1. Topics: Can you explain to me the different high-level, semantic topics that the files in the directory represent? Include a description of each topic. Return the topics as a list in the form:
+Which files should we start by analyzing?
 
-2: Entrypoints: Which files would be good entrypoints to each of the different topics?
+Return your output as a list of files to analyze:
+- file_1
+- file_2
+- ...
 
-Please return your answer in JSON format, in the following structure:
-{{
-    "topics": {{"<high level topic 1>": "<description of topic 1>", "<high level topic 2>": "<description of topic 2>", ...}},
-    "entrypoints": {{"<high level topic 1>": ["<entrypoint 1 for topic 1>", "<entrypoint 2 for topic 1>", ...], "<high level topic 2>": ["<entrypoint 1 for topic 2>", "<entrypoint 2 for topic 2>", ...], ...}}
-}}
-
-Remember, the topics should reflect the high-level semantics of the files in the directory.
-
-Thank you for your help!
+Each file should be specified as a path relative to the root of the codebase.
 """
 
 
-def analyze_directory(
+def generate_prompt(
     directory: str,
-    only_extensions: Optional[List[str]] = None,
     ignores: Optional[Set[str]] = None,
     symlinks: bool = False,
 ) -> str:
     tree = dirtree(
         directory=directory,
-        only_extensions=only_extensions,
         ignores=ignores,
         symlinks=symlinks,
     )
-    render = render_dirtree(tree, directory)
+    rendered_tree = render_dirtree(tree, directory)
 
-    llm = OpenAI(openai_api_key=OPENAI_API_KEY())
-    prompt = PromptTemplate(
-        input_variables=["directory"], template=DESCRIBE_DIRECTORY_PROMPT
-    )
-    chain = LLMChain(llm=llm, prompt=prompt)
+    prompt = DESCRIBE_DIRECTORY_PROMPT.format(dirtree=rendered_tree)
 
-    result = chain.run(render)
+    return prompt
+
+
+def hone(
+    model: str,
+    directory: str,
+    ignores: Optional[Set[str]] = None,
+    symlinks: bool = False,
+) -> str:
+    prompt = generate_prompt(directory, ignores, symlinks)
+
+    result = openai.Completion.create(model=model, prompt=prompt, max_tokens=1000)
+
     return result
